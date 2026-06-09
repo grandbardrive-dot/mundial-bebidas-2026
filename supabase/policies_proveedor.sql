@@ -44,85 +44,89 @@ create policy "proveedor lee su vinculo"
 
 -- =============================================================================
 -- 2) LECTURAS ACOTADAS PARA EL PROVEEDOR (rol authenticated)
---    Cada política deja ver SOLO las filas ligadas a su proveedor_id.
+--    Usamos funciones SECURITY DEFINER para los chequeos: corren como owner y
+--    saltean RLS, evitando recursión entre políticas (clientes <-> coleccion).
 -- =============================================================================
+
+-- proveedor_id de la marca del usuario logueado
+create or replace function public.mi_proveedor_id()
+returns uuid language sql security definer stable set search_path = public as $$
+  select proveedor_id from public.proveedor_usuarios where user_id = auth.uid() limit 1;
+$$;
+
+-- ¿la figurita pertenece a mi marca?
+create or replace function public.figurita_es_de_mi_marca(p_fig uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select exists (
+    select 1 from public.figuritas f
+    where f.id = p_fig and f.proveedor_id = public.mi_proveedor_id()
+  );
+$$;
+
+-- ¿el cliente tiene actividad con mi marca? (colección o reclamo de mi proveedor)
+create or replace function public.cliente_es_de_mi_marca(p_cliente uuid)
+returns boolean language sql security definer stable set search_path = public as $$
+  select
+    exists (
+      select 1 from public.coleccion_cliente cc
+      join public.figuritas f on f.id = cc.figurita_id
+      where cc.cliente_id = p_cliente and f.proveedor_id = public.mi_proveedor_id()
+    )
+    or exists (
+      select 1 from public.reclamos_premio r
+      where r.cliente_id = p_cliente and r.proveedor_id = public.mi_proveedor_id()
+    );
+$$;
+
+grant execute on function public.mi_proveedor_id() to anon, authenticated;
+grant execute on function public.figurita_es_de_mi_marca(uuid) to anon, authenticated;
+grant execute on function public.cliente_es_de_mi_marca(uuid) to anon, authenticated;
+
+-- Borrar políticas vestigiales (modelo cliente-con-Auth, sin uso) que cierran el
+-- ciclo de recursión (clientes <-> coleccion/reclamos). Los clientes anónimos no
+-- las necesitan: usan las políticas "(anon)" y la RPC reclamar_premio.
+drop policy if exists "cliente ve su coleccion"        on public.coleccion_cliente;
+drop policy if exists "cliente inserta en su coleccion" on public.coleccion_cliente;
+drop policy if exists "cliente actualiza su coleccion"  on public.coleccion_cliente;
+drop policy if exists "cliente ve sus reclamos"  on public.reclamos_premio;
+drop policy if exists "cliente crea sus reclamos" on public.reclamos_premio;
+drop policy if exists "cliente ve su ficha"       on public.clientes;
+drop policy if exists "cliente actualiza su ficha" on public.clientes;
 
 -- Figuritas de su marca
 drop policy if exists "proveedor lee sus figuritas" on public.figuritas;
 create policy "proveedor lee sus figuritas"
   on public.figuritas for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.proveedor_usuarios pu
-      where pu.user_id = auth.uid()
-        and pu.proveedor_id = figuritas.proveedor_id
-    )
-  );
+  using (proveedor_id = public.mi_proveedor_id());
 
 -- Premios de su marca
 drop policy if exists "proveedor lee sus premios" on public.premios_proveedor_semana;
 create policy "proveedor lee sus premios"
   on public.premios_proveedor_semana for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.proveedor_usuarios pu
-      where pu.user_id = auth.uid()
-        and pu.proveedor_id = premios_proveedor_semana.proveedor_id
-    )
-  );
+  using (proveedor_id = public.mi_proveedor_id());
 
--- Reclamos de su marca (reclamos_premio.proveedor_id)
+-- Reclamos de su marca
 drop policy if exists "proveedor lee sus reclamos" on public.reclamos_premio;
 create policy "proveedor lee sus reclamos"
   on public.reclamos_premio for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.proveedor_usuarios pu
-      where pu.user_id = auth.uid()
-        and pu.proveedor_id = reclamos_premio.proveedor_id
-    )
-  );
+  using (proveedor_id = public.mi_proveedor_id());
 
 -- Colección: filas cuya figurita pertenece a su marca
 drop policy if exists "proveedor lee coleccion de su marca" on public.coleccion_cliente;
 create policy "proveedor lee coleccion de su marca"
   on public.coleccion_cliente for select
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.figuritas f
-      join public.proveedor_usuarios pu on pu.proveedor_id = f.proveedor_id
-      where f.id = coleccion_cliente.figurita_id
-        and pu.user_id = auth.uid()
-    )
-  );
+  using (public.figurita_es_de_mi_marca(figurita_id));
 
--- Clientes que tienen actividad con su marca (colección o reclamo de su proveedor)
+-- Clientes con actividad en su marca
 drop policy if exists "proveedor lee clientes de su marca" on public.clientes;
 create policy "proveedor lee clientes de su marca"
   on public.clientes for select
   to authenticated
-  using (
-    exists (
-      select 1
-      from public.coleccion_cliente cc
-      join public.figuritas f on f.id = cc.figurita_id
-      join public.proveedor_usuarios pu on pu.proveedor_id = f.proveedor_id
-      where cc.cliente_id = clientes.id
-        and pu.user_id = auth.uid()
-    )
-    or exists (
-      select 1
-      from public.reclamos_premio r
-      join public.proveedor_usuarios pu on pu.proveedor_id = r.proveedor_id
-      where r.cliente_id = clientes.id
-        and pu.user_id = auth.uid()
-    )
-  );
+  using (public.cliente_es_de_mi_marca(id));
 
 
 -- =============================================================================

@@ -10,6 +10,7 @@ export default {
         naranja: '#D2552A', // acento principal (CTA, números destacados)
         dorado: '#CBA86A', // acento premium (bordes, trofeos) — ocre oficial
         azul: '#1F447F', // estructura y contraste — azul oficial
+        'azul-oscuro': '#16335E', // panel de proveedores (corporativo)
         crema: '#F2E8D5', // texto sobre fondos oscuros
       },
       fontFamily: {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Loader2, LogOut, Store } from 'lucide-react'
 import { supabaseAuth } from '../lib/supabaseAuth'
 import { Tablero } from '../components/proveedor/Tablero'
+import { FondoProveedor } from '../components/proveedor/FondoProveedor'
 
 type Estado =
   | { status: 'cargando' }
@@ -63,8 +64,9 @@ export function ProveedorPanel() {
   }
 
   return (
-    <main className="min-h-screen bg-morado text-crema">
-      <div className="sticky top-0 z-10 border-b border-dorado/20 bg-morado/95 backdrop-blur">
+    <main className="relative min-h-screen text-crema">
+      <FondoProveedor />
+      <div className="sticky top-0 z-10 border-b border-dorado/20 bg-azul-oscuro/80 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Store size={18} className="text-dorado" />
@@ -98,7 +100,7 @@ export function ProveedorPanel() {
         )}
 
         {estado.status === 'sin-vinculo' && (
-          <div className="rounded-xl border border-dorado/20 bg-vino/20 px-5 py-8 text-center text-sm text-crema/70">
+          <div className="rounded-xl border border-dorado/20 bg-white/5 px-5 py-8 text-center text-sm text-crema/70">
             Tu usuario no está vinculado a ningún proveedor todavía. Pedile al
             administrador que cargue tu acceso.
           </div>

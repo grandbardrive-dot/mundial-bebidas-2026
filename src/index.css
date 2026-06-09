@@ -73,3 +73,58 @@
     animation: none;
   }
 }
+
+/* ===== Panel de proveedores: fondo animado de fútbol (decorativo, sutil) ===== */
+@keyframes flota-a {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(14px, -34px) rotate(22deg);
+  }
+}
+@keyframes flota-b {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-20px, -24px) rotate(-18deg);
+  }
+}
+@keyframes flota-c {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(10px, 28px) rotate(14deg);
+  }
+}
+.flota-a {
+  animation: flota-a 20s ease-in-out infinite;
+}
+.flota-b {
+  animation: flota-b 26s ease-in-out infinite;
+}
+.flota-c {
+  animation: flota-c 23s ease-in-out infinite;
+}
+
+/* En mobile: más lento (menos repintados / batería) */
+@media (max-width: 640px) {
+  .flota-a,
+  .flota-b,
+  .flota-c {
+    animation-duration: 40s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flota-a,
+  .flota-b,
+  .flota-c {
+    animation: none;
+  }
+}

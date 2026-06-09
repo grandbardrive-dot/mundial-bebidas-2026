@@ -15,13 +15,13 @@ import {
 import { AlertTriangle, Check, ChevronDown, Trophy, X } from 'lucide-react'
 import { supabaseAuth } from '../../lib/supabaseAuth'
 
-// Paleta de marca
+// Paleta corporativa del panel de proveedores
 const C = {
   dorado: '#CBA86A',
-  naranja: '#D2552A',
-  azul: '#1F447F',
+  azulClaro: '#9DB8DC',
+  azulMedio: '#3C5C8A',
   crema: '#F2E8D5',
-  vino: '#7A2236',
+  panel: '#16335E',
 }
 
 type EstadoReclamo = 'reservado' | 'confirmado' | 'rechazado'
@@ -201,8 +201,8 @@ export function Tablero(_props: Props) {
 
     const pieData = [
       { name: 'Completada (5/5)', value: completaron, color: C.dorado },
-      { name: 'En progreso (1-4)', value: enProgreso, color: C.naranja },
-      { name: 'Sin empezar (0)', value: sinEmpezar, color: C.azul },
+      { name: 'En progreso (1-4)', value: enProgreso, color: C.azulClaro },
+      { name: 'Sin empezar (0)', value: sinEmpezar, color: C.azulMedio },
     ]
 
     return {
@@ -256,7 +256,7 @@ export function Tablero(_props: Props) {
 
   if (!datos || datos.clientesCalc.length === 0)
     return (
-      <div className="mt-8 rounded-2xl border border-dorado/20 bg-vino/20 px-5 py-12 text-center text-sm text-crema/60">
+      <div className="mt-8 rounded-2xl border border-dorado/20 bg-white/5 px-5 py-12 text-center text-sm text-crema/60">
         Todavía no hay clientes con figuritas de tu marca.
       </div>
     )
@@ -277,7 +277,7 @@ export function Tablero(_props: Props) {
 
       {/* 2) GRÁFICOS */}
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-dorado/20 bg-vino/20 p-4">
+        <div className="rounded-2xl border border-dorado/20 bg-white/5 p-4">
           <h3 className="mb-3 font-display text-lg text-crema">
             Clientes por figurita
           </h3>
@@ -296,7 +296,7 @@ export function Tablero(_props: Props) {
                 <YAxis allowDecimals={false} tick={{ fill: C.crema, fontSize: 11 }} />
                 <Tooltip
                   contentStyle={{
-                    background: '#2E1A3A',
+                    background: '#16335E',
                     border: `1px solid ${C.dorado}`,
                     borderRadius: 8,
                     color: C.crema,
@@ -309,7 +309,7 @@ export function Tablero(_props: Props) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-dorado/20 bg-vino/20 p-4">
+        <div className="rounded-2xl border border-dorado/20 bg-white/5 p-4">
           <h3 className="mb-3 font-display text-lg text-crema">
             Clientes por estado de página
           </h3>
@@ -327,12 +327,12 @@ export function Tablero(_props: Props) {
                   paddingAngle={2}
                 >
                   {datos.pieData.map((d) => (
-                    <Cell key={d.name} fill={d.color} stroke="#2E1A3A" />
+                    <Cell key={d.name} fill={d.color} stroke="#16335E" />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: '#2E1A3A',
+                    background: '#16335E',
                     border: `1px solid ${C.dorado}`,
                     borderRadius: 8,
                     color: C.crema,
@@ -353,7 +353,7 @@ export function Tablero(_props: Props) {
         <h3 className="mb-3 font-display text-lg text-crema">Ranking de clientes</h3>
         <div className="overflow-x-auto rounded-2xl border border-dorado/15">
           <table className="w-full text-left text-sm">
-            <thead className="bg-vino/40 text-xs uppercase tracking-wide text-crema/60">
+            <thead className="bg-white/10 text-xs uppercase tracking-wide text-crema/60">
               <tr>
                 <Th label="Local" onClick={() => toggleSort('local')} active={sortCol === 'local'} dir={sortDir} />
                 <th className="px-3 py-2">Canal</th>
@@ -371,7 +371,7 @@ export function Tablero(_props: Props) {
                   <Fragment key={c.id}>
                     <tr
                       onClick={() => setExpandido(abierto ? null : c.id)}
-                      className={`cursor-pointer border-t border-dorado/10 transition hover:bg-vino/20 ${
+                      className={`cursor-pointer border-t border-dorado/10 transition hover:bg-white/5 ${
                         completo ? 'bg-dorado/5' : ''
                       }`}
                     >
@@ -390,12 +390,12 @@ export function Tablero(_props: Props) {
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-morado/70">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
                             <div
                               className="h-full rounded-full"
                               style={{
                                 width: `${c.pct}%`,
-                                background: completo ? C.dorado : C.naranja,
+                                background: completo ? C.dorado : C.azulClaro,
                               }}
                             />
                           </div>
@@ -410,7 +410,7 @@ export function Tablero(_props: Props) {
                       </td>
                     </tr>
                     {abierto && (
-                      <tr className="border-t border-dorado/10 bg-morado/40">
+                      <tr className="border-t border-dorado/10 bg-white/5">
                         <td colSpan={6} className="px-3 py-4">
                           <DetalleCliente cliente={c} figuritas={datos.figuritas} />
                         </td>
@@ -441,7 +441,7 @@ function Tarjeta({
   return (
     <div
       className={`rounded-2xl border p-4 ${
-        acento ? 'border-dorado/50 bg-dorado/10' : 'border-dorado/20 bg-vino/20'
+        acento ? 'border-dorado/50 bg-dorado/10' : 'border-dorado/20 bg-white/5'
       }`}
     >
       <p className="text-xs text-crema/60">{label}</p>
@@ -500,7 +500,7 @@ function DetalleCliente({
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
                   tiene
                     ? 'bg-dorado/20 text-dorado'
-                    : 'bg-morado/60 text-crema/40 line-through'
+                    : 'bg-white/10 text-crema/40 line-through'
                 }`}
               >
                 {tiene ? <Check size={12} /> : <X size={12} />}
@@ -542,7 +542,7 @@ function TableroSkeleton() {
     <div className="mt-8 space-y-8">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl border border-dorado/15 bg-vino/20 p-4">
+          <div key={i} className="rounded-2xl border border-dorado/15 bg-white/5 p-4">
             <div className="h-3 w-24 animate-pulse rounded bg-crema/10" />
             <div className="mt-3 h-7 w-16 animate-pulse rounded bg-crema/10" />
           </div>
@@ -550,7 +550,7 @@ function TableroSkeleton() {
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         {[0, 1].map((i) => (
-          <div key={i} className="rounded-2xl border border-dorado/15 bg-vino/20 p-4">
+          <div key={i} className="rounded-2xl border border-dorado/15 bg-white/5 p-4">
             <div className="mb-3 h-5 w-40 animate-pulse rounded bg-crema/10" />
             <div className="h-56 w-full animate-pulse rounded bg-crema/5" />
           </div>
