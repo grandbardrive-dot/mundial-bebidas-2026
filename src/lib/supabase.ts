@@ -13,4 +13,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Cliente principal: SIEMPRE anónimo (admin y clientes operan con la anon key,
+// sin sesión de usuario). Desactivamos la persistencia de sesión para que este
+// cliente nunca quede "logueado" (la sesión del proveedor vive en otro cliente,
+// supabaseAuth, con su propio storageKey). Así un login de proveedor no rompe
+// los flujos anon del álbum/admin.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+})
