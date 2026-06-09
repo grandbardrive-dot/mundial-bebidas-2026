@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Loader2, LogOut, Store } from 'lucide-react'
 import { supabaseAuth } from '../lib/supabaseAuth'
+import { Tablero } from '../components/proveedor/Tablero'
 
 type Estado =
   | { status: 'cargando' }
-  | { status: 'ok'; nombre: string }
+  | { status: 'ok'; nombre: string; proveedorId: string }
   | { status: 'sin-vinculo' }
   | { status: 'error'; mensaje: string }
 
@@ -46,7 +47,8 @@ export function ProveedorPanel() {
       const nombre =
         uno((data as { proveedores: unknown }).proveedores as { nombre: string })
           ?.nombre ?? 'tu marca'
-      setEstado({ status: 'ok', nombre })
+      const proveedorId = (data as { proveedor_id: string }).proveedor_id
+      setEstado({ status: 'ok', nombre, proveedorId })
     }
 
     cargar()
@@ -110,14 +112,7 @@ export function ProveedorPanel() {
             <h1 className="mt-2 font-display text-4xl text-crema">
               Panel de {estado.nombre}
             </h1>
-            <p className="mt-4 max-w-lg text-crema/70">
-              Acá vas a ver las métricas de tu marca: progreso de figuritas,
-              clientes que completaron tu página y reclamos de tus premios. Estamos
-              preparando los gráficos (Parte 2).
-            </p>
-            <div className="mt-8 rounded-2xl border border-dorado/20 bg-vino/20 px-5 py-10 text-center text-sm text-crema/50">
-              Próximamente: estadísticas de {estado.nombre}.
-            </div>
+            <Tablero proveedorId={estado.proveedorId} nombre={estado.nombre} />
           </div>
         )}
       </div>
