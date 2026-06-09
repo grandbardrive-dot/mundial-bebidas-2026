@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fuentes de marca (archivos en /public/fonts/) */
+@font-face {
+  font-family: 'Parginer';
+  src: url('/fonts/Parginer_Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cambria';
+  src: url('/fonts/Cambria.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  body {
+    @apply bg-morado text-crema font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+}
+
+/* Glow continuo y sutil del marco dorado (figuritas doradas) */
+@keyframes glow-dorado {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(203, 168, 106, 0.6),
+      0 0 10px 0 rgba(203, 168, 106, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(203, 168, 106, 0.95),
+      0 0 26px 5px rgba(203, 168, 106, 0.7);
+  }
+}
+.animate-glow-dorado {
+  animation: glow-dorado 2.6s ease-in-out infinite;
+}
+
+/* Pop del sello "¡COMPLETO!" al completar una página */
+@keyframes sello-pop {
+  0% {
+    transform: rotate(-8deg) scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: rotate(-8deg) scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-8deg) scale(1);
+    opacity: 1;
+  }
+}
+.animate-sello-pop {
+  animation: sello-pop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-dorado,
+  .animate-sello-pop {
+    animation: none;
+  }
+}
