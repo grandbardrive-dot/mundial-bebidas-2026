@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase'
 import type { Dinamica, Figurita, Proveedor, TipoCanal } from '../types'
 import { FiguritaCard } from '../components/FiguritaCard'
 import { ReclamoModal } from '../components/ReclamoModal'
+import { RankingClientes } from '../components/RankingClientes'
+import { Ganadores } from '../components/Ganadores'
 
 interface Props {
   clienteId: string
@@ -63,6 +65,7 @@ export function Album({ clienteId, onReset }: Props) {
   const [estado, setEstado] = useState<Estado>({ status: 'cargando' })
   const [tiene, setTiene] = useState<Record<string, boolean>>({})
   const [errorTilde, setErrorTilde] = useState<string | null>(null)
+  const [completadoAt, setCompletadoAt] = useState<string | null>(null)
   // Proveedor cuyo panel de premios está abierto
   const [modalProv, setModalProv] = useState<{
     id: string
@@ -147,6 +150,18 @@ export function Album({ clienteId, onReset }: Props) {
       }
 
       setTiene(tieneInit)
+      // completado_at: lectura best-effort (no rompe el álbum si falta la columna)
+      supabase
+        .from('clientes')
+        .select('completado_at')
+        .eq('id', clienteId)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (!error && data && activo)
+            setCompletadoAt(
+              (data as { completado_at: string | null }).completado_at ?? null,
+            )
+        })
       setEstado({
         status: 'ok',
         nombreLocal: (cli as { nombre_local: string }).nombre_local,
@@ -271,6 +286,21 @@ export function Album({ clienteId, onReset }: Props) {
       setTiene((t) => ({ ...t, [figId]: previo }))
       setErrorTilde('No se pudo guardar el cambio. Probá de nuevo.')
       window.setTimeout(() => setErrorTilde(null), 4000)
+      return
+    }
+
+    // ¿Llegó a 30/30? Registrar completado_at una sola vez (server-side verifica).
+    if (estado.status === 'ok' && nuevo && !completadoAt) {
+      const totalFig = estado.figuritas.length
+      const tildadasAhora = estado.figuritas.filter((f) =>
+        f.id === figId ? true : tiene[f.id],
+      ).length
+      if (totalFig > 0 && tildadasAhora >= totalFig) {
+        const { data } = await supabase.rpc('marcar_completado', {
+          p_cliente_id: clienteId,
+        })
+        if (data) setCompletadoAt(data as string)
+      }
     }
   }
 
@@ -424,6 +454,12 @@ export function Album({ clienteId, onReset }: Props) {
               Todavía no hay figuritas cargadas. Volvé pronto.
             </div>
           )}
+        </div>
+
+        {/* Ranking + Ganadores */}
+        <div className="mt-10 space-y-6">
+          <RankingClientes clienteId={clienteId} />
+          <Ganadores />
         </div>
 
         {/* Pie: cambiar datos */}
