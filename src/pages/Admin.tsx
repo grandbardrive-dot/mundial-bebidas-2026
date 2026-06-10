@@ -5,7 +5,7 @@ import { PremiosProveedorTab } from '../components/admin/PremiosProveedorTab'
 import { PremiosGeneralesTab } from '../components/admin/PremiosGeneralesTab'
 import { VendedoresTab } from '../components/admin/VendedoresTab'
 import { ReclamosTab } from '../components/admin/ReclamosTab'
-import { EstimacionesTab } from '../components/admin/EstimacionesTab'
+import { BeneficiosTab } from '../components/admin/BeneficiosTab'
 import { KpisDashboard } from '../components/admin/KpisDashboard'
 
 const FLAG = 'gb_admin_ok'
@@ -132,7 +132,7 @@ export function Admin() {
         {tab === 'generales' && <PremiosGeneralesTab />}
         {tab === 'vendedores' && <VendedoresTab />}
         {tab === 'reclamos' && <ReclamosTab />}
-        {tab === 'estimaciones' && <EstimacionesTab />}
+        {tab === 'estimaciones' && <BeneficiosTab />}
       </div>
     </main>
   )

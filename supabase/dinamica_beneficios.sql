@@ -20,7 +20,9 @@
 create table if not exists public.dinamica_beneficios (
   id                  uuid primary key default gen_random_uuid(),
   dinamica_id         uuid not null references public.dinamicas (id) on delete cascade,
+  tipo                text check (tipo in ('sin_cargo','descuento','material','diluyente','combo')),
   concepto            text,
+  nota                text,
   botellas_facturadas int not null default 0,
   botellas_sin_cargo  int not null default 0,
   costo               numeric not null default 0,
@@ -93,7 +95,7 @@ create policy "beneficios borra (anon)"
 -- authenticated (proveedor): SELECT scopeado a su marca, SIN la columna `costo`
 --   (revocamos el SELECT de tabla y damos GRANT solo a las columnas permitidas)
 revoke select on public.dinamica_beneficios from authenticated;
-grant select (id, dinamica_id, concepto, botellas_facturadas, botellas_sin_cargo, created_at)
+grant select (id, dinamica_id, tipo, botellas_facturadas, botellas_sin_cargo, nota, created_at)
   on public.dinamica_beneficios to authenticated;
 
 drop policy if exists "proveedor lee beneficios" on public.dinamica_beneficios;
