@@ -44,11 +44,13 @@ interface CliRow {
   canales: { nombre: string; tipo: TipoCanal } | { nombre: string; tipo: TipoCanal }[] | null
   vendedores: { nombre: string } | { nombre: string }[] | null
 }
-interface DinVol {
-  figurita_id: string
-  tipo: TipoCanal
+interface BenRow {
   botellas_facturadas: number | null
   botellas_sin_cargo: number | null
+  dinamicas:
+    | { figurita_id: string; tipo: TipoCanal }
+    | { figurita_id: string; tipo: TipoCanal }[]
+    | null
 }
 interface ReclamoRow {
   cliente_id: string
@@ -89,7 +91,7 @@ type Carga =
       coleccion: ColRow[]
       clientes: CliRow[]
       reclamos: ReclamoRow[]
-      dinamicas: DinVol[]
+      beneficios: BenRow[]
     }
   | { status: 'error'; mensaje: string }
 
@@ -125,8 +127,8 @@ export function Tablero(_props: Props) {
           .from('reclamos_premio')
           .select('cliente_id, estado, premios_proveedor_semana ( nombre_premio )'),
         supabaseAuth
-          .from('dinamicas')
-          .select('figurita_id, tipo, botellas_facturadas, botellas_sin_cargo'),
+          .from('dinamica_beneficios')
+          .select('botellas_facturadas, botellas_sin_cargo, dinamicas ( figurita_id, tipo )'),
       ])
 
       if (!activo) return
@@ -139,7 +141,7 @@ export function Tablero(_props: Props) {
           coleccion: colRes.error?.message,
           clientes: cliRes.error?.message,
           reclamos: reclRes.error?.message,
-          dinamicas: dinRes.error?.message,
+          beneficios: dinRes.error?.message,
         })
         setCarga({ status: 'error', mensaje: err.message })
         return
@@ -150,7 +152,7 @@ export function Tablero(_props: Props) {
         coleccion: (colRes.data ?? []) as ColRow[],
         clientes: (cliRes.data ?? []) as unknown as CliRow[],
         reclamos: (reclRes.data ?? []) as unknown as ReclamoRow[],
-        dinamicas: (dinRes.data ?? []) as unknown as DinVol[],
+        beneficios: (dinRes.data ?? []) as unknown as BenRow[],
       })
     })()
     return () => {
@@ -160,7 +162,7 @@ export function Tablero(_props: Props) {
 
   const datos = useMemo(() => {
     if (carga.status !== 'ok') return null
-    const { figuritas, coleccion, clientes, reclamos, dinamicas } = carga
+    const { figuritas, coleccion, clientes, reclamos, beneficios } = carga
     const total = figuritas.length || 5
 
     // tiene=true por cliente
@@ -228,15 +230,19 @@ export function Tablero(_props: Props) {
       { name: 'Sin empezar (0)', value: sinEmpezar, color: C.azulMedio },
     ]
 
-    // ---- Volumen estimado de la marca ----
+    // ---- Volumen estimado de la marca (modelo dinamica_beneficios) ----
+    // Botellas de una dinámica = SUMA de las botellas de sus beneficios.
     // Por cada figurita que un cliente TIENE, se asume cumplida la dinámica de SU
-    // tipo de canal (ON/OFF) -> sumamos las botellas estimadas de esa dinámica.
+    // tipo de canal (ON/OFF) -> se suman esas botellas.
     const dinaMap = new Map<string, { fact: number; sin: number }>()
-    for (const d of dinamicas) {
-      dinaMap.set(`${d.figurita_id}|${d.tipo}`, {
-        fact: d.botellas_facturadas ?? 0,
-        sin: d.botellas_sin_cargo ?? 0,
-      })
+    for (const b of beneficios) {
+      const d = uno(b.dinamicas)
+      if (!d) continue
+      const key = `${d.figurita_id}|${d.tipo}`
+      const prev = dinaMap.get(key) ?? { fact: 0, sin: 0 }
+      prev.fact += b.botellas_facturadas ?? 0
+      prev.sin += b.botellas_sin_cargo ?? 0
+      dinaMap.set(key, prev)
     }
     let volFacturadas = 0
     let volSinCargo = 0
@@ -250,9 +256,7 @@ export function Tablero(_props: Props) {
         }
       }
     }
-    const hayEstimacion = dinamicas.some(
-      (d) => d.botellas_facturadas != null || d.botellas_sin_cargo != null,
-    )
+    const hayEstimacion = beneficios.length > 0
 
     return {
       total,

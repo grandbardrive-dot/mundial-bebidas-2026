@@ -6,16 +6,19 @@ import { PremiosGeneralesTab } from '../components/admin/PremiosGeneralesTab'
 import { VendedoresTab } from '../components/admin/VendedoresTab'
 import { ReclamosTab } from '../components/admin/ReclamosTab'
 import { EstimacionesTab } from '../components/admin/EstimacionesTab'
+import { KpisDashboard } from '../components/admin/KpisDashboard'
 
 const FLAG = 'gb_admin_ok'
 
 type TabId =
+  | 'dashboard'
   | 'proveedor'
   | 'generales'
   | 'vendedores'
   | 'reclamos'
   | 'estimaciones'
 const TABS: { id: TabId; label: string }[] = [
+  { id: 'dashboard', label: 'Dashboard' },
   { id: 'proveedor', label: 'Premios por proveedor' },
   { id: 'generales', label: 'Premios generales' },
   { id: 'vendedores', label: 'Vendedores' },
@@ -79,7 +82,7 @@ function Gate({ onOk }: { onOk: () => void }) {
 
 export function Admin() {
   const [ok, setOk] = useState(() => sessionStorage.getItem(FLAG) === '1')
-  const [tab, setTab] = useState<TabId>('proveedor')
+  const [tab, setTab] = useState<TabId>('dashboard')
 
   if (!ok) return <Gate onOk={() => setOk(true)} />
 
@@ -124,6 +127,7 @@ export function Admin() {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+        {tab === 'dashboard' && <KpisDashboard />}
         {tab === 'proveedor' && <PremiosProveedorTab />}
         {tab === 'generales' && <PremiosGeneralesTab />}
         {tab === 'vendedores' && <VendedoresTab />}
