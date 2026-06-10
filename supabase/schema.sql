@@ -66,6 +66,10 @@ create table if not exists public.dinamicas (
   productos     text,
   condicion     text,
   observaciones text,
+  -- KPIs de volumen (estimados): botellas que implica cumplir la dinámica.
+  botellas_facturadas int,
+  botellas_sin_cargo  int,
+  estimacion_manual   boolean not null default false, -- true = el admin debe revisarla
   unique (figurita_id, tipo)
 );
 

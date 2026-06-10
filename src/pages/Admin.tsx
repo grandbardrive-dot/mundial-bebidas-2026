@@ -5,15 +5,22 @@ import { PremiosProveedorTab } from '../components/admin/PremiosProveedorTab'
 import { PremiosGeneralesTab } from '../components/admin/PremiosGeneralesTab'
 import { VendedoresTab } from '../components/admin/VendedoresTab'
 import { ReclamosTab } from '../components/admin/ReclamosTab'
+import { EstimacionesTab } from '../components/admin/EstimacionesTab'
 
 const FLAG = 'gb_admin_ok'
 
-type TabId = 'proveedor' | 'generales' | 'vendedores' | 'reclamos'
+type TabId =
+  | 'proveedor'
+  | 'generales'
+  | 'vendedores'
+  | 'reclamos'
+  | 'estimaciones'
 const TABS: { id: TabId; label: string }[] = [
   { id: 'proveedor', label: 'Premios por proveedor' },
   { id: 'generales', label: 'Premios generales' },
   { id: 'vendedores', label: 'Vendedores' },
   { id: 'reclamos', label: 'Reclamos' },
+  { id: 'estimaciones', label: 'Estimaciones de volumen' },
 ]
 
 function Gate({ onOk }: { onOk: () => void }) {
@@ -121,6 +128,7 @@ export function Admin() {
         {tab === 'generales' && <PremiosGeneralesTab />}
         {tab === 'vendedores' && <VendedoresTab />}
         {tab === 'reclamos' && <ReclamosTab />}
+        {tab === 'estimaciones' && <EstimacionesTab />}
       </div>
     </main>
   )

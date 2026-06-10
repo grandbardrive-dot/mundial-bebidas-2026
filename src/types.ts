@@ -64,6 +64,9 @@ export interface Dinamica {
   productos: string | null
   condicion: string | null
   observaciones: string | null
+  botellas_facturadas: number | null
+  botellas_sin_cargo: number | null
+  estimacion_manual: boolean
 }
 
 export interface PremioProveedor {
