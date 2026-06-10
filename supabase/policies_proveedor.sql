@@ -128,6 +128,13 @@ create policy "proveedor lee clientes de su marca"
   to authenticated
   using (public.cliente_es_de_mi_marca(id));
 
+-- Dinámicas de su marca (para los KPIs de volumen)
+drop policy if exists "proveedor lee sus dinamicas" on public.dinamicas;
+create policy "proveedor lee sus dinamicas"
+  on public.dinamicas for select
+  to authenticated
+  using (public.figurita_es_de_mi_marca(figurita_id));
+
 
 -- =============================================================================
 -- 3) RE-DEFINIR LAS LECTURAS AMPLIAS ACTUALES -> SOLO `anon`
@@ -166,6 +173,12 @@ drop policy if exists "device lee reclamos" on public.reclamos_premio;
 drop policy if exists "lectura reclamos (anon)" on public.reclamos_premio;
 create policy "lectura reclamos (anon)"
   on public.reclamos_premio for select to anon using (true);
+
+-- dinamicas (álbum del cliente + admin, anon). Pública -> anon para no filtrar al proveedor.
+drop policy if exists "lectura publica dinamicas" on public.dinamicas;
+drop policy if exists "lectura dinamicas (anon)" on public.dinamicas;
+create policy "lectura dinamicas (anon)"
+  on public.dinamicas for select to anon using (true);
 
 
 -- =============================================================================

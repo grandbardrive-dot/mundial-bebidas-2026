@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import { AlertTriangle, Check, ChevronDown, Trophy, X } from 'lucide-react'
 import { supabaseAuth } from '../../lib/supabaseAuth'
+import type { TipoCanal } from '../../types'
 
 // Paleta corporativa del panel de proveedores
 const C = {
@@ -40,8 +41,14 @@ interface ColRow {
 interface CliRow {
   id: string
   nombre_local: string
-  canales: { nombre: string } | { nombre: string }[] | null
+  canales: { nombre: string; tipo: TipoCanal } | { nombre: string; tipo: TipoCanal }[] | null
   vendedores: { nombre: string } | { nombre: string }[] | null
+}
+interface DinVol {
+  figurita_id: string
+  tipo: TipoCanal
+  botellas_facturadas: number | null
+  botellas_sin_cargo: number | null
 }
 interface ReclamoRow {
   cliente_id: string
@@ -59,6 +66,7 @@ interface ClienteCalc {
   id: string
   nombre_local: string
   canal: string
+  canalTipo: TipoCanal | null
   vendedor: string
   tieneSet: Set<string>
   count: number
@@ -81,6 +89,7 @@ type Carga =
       coleccion: ColRow[]
       clientes: CliRow[]
       reclamos: ReclamoRow[]
+      dinamicas: DinVol[]
     }
   | { status: 'error'; mensaje: string }
 
@@ -103,7 +112,7 @@ export function Tablero(_props: Props) {
     ;(async () => {
       setCarga({ status: 'cargando' })
       // Todas estas queries vienen filtradas por RLS a la marca del proveedor.
-      const [figRes, colRes, cliRes, reclRes] = await Promise.all([
+      const [figRes, colRes, cliRes, reclRes, dinRes] = await Promise.all([
         supabaseAuth
           .from('figuritas')
           .select('id, nombre, orden, es_dorada')
@@ -111,15 +120,27 @@ export function Tablero(_props: Props) {
         supabaseAuth.from('coleccion_cliente').select('cliente_id, figurita_id, tiene'),
         supabaseAuth
           .from('clientes')
-          .select('id, nombre_local, canales ( nombre ), vendedores ( nombre )'),
+          .select('id, nombre_local, canales ( nombre, tipo ), vendedores ( nombre )'),
         supabaseAuth
           .from('reclamos_premio')
           .select('cliente_id, estado, premios_proveedor_semana ( nombre_premio )'),
+        supabaseAuth
+          .from('dinamicas')
+          .select('figurita_id, tipo, botellas_facturadas, botellas_sin_cargo'),
       ])
 
       if (!activo) return
-      const err = figRes.error || colRes.error || cliRes.error || reclRes.error
+      const err =
+        figRes.error || colRes.error || cliRes.error || reclRes.error || dinRes.error
       if (err) {
+        // Log claro para diagnóstico (RLS, columnas, etc.)
+        console.error('[Tablero proveedor] error cargando datos:', {
+          figuritas: figRes.error?.message,
+          coleccion: colRes.error?.message,
+          clientes: cliRes.error?.message,
+          reclamos: reclRes.error?.message,
+          dinamicas: dinRes.error?.message,
+        })
         setCarga({ status: 'error', mensaje: err.message })
         return
       }
@@ -129,6 +150,7 @@ export function Tablero(_props: Props) {
         coleccion: (colRes.data ?? []) as ColRow[],
         clientes: (cliRes.data ?? []) as unknown as CliRow[],
         reclamos: (reclRes.data ?? []) as unknown as ReclamoRow[],
+        dinamicas: (dinRes.data ?? []) as unknown as DinVol[],
       })
     })()
     return () => {
@@ -138,7 +160,7 @@ export function Tablero(_props: Props) {
 
   const datos = useMemo(() => {
     if (carga.status !== 'ok') return null
-    const { figuritas, coleccion, clientes, reclamos } = carga
+    const { figuritas, coleccion, clientes, reclamos, dinamicas } = carga
     const total = figuritas.length || 5
 
     // tiene=true por cliente
@@ -168,6 +190,7 @@ export function Tablero(_props: Props) {
         id: cl.id,
         nombre_local: cl.nombre_local,
         canal: uno(cl.canales)?.nombre ?? '—',
+        canalTipo: uno(cl.canales)?.tipo ?? null,
         vendedor: uno(cl.vendedores)?.nombre ?? '—',
         tieneSet: set,
         count,
@@ -205,6 +228,32 @@ export function Tablero(_props: Props) {
       { name: 'Sin empezar (0)', value: sinEmpezar, color: C.azulMedio },
     ]
 
+    // ---- Volumen estimado de la marca ----
+    // Por cada figurita que un cliente TIENE, se asume cumplida la dinámica de SU
+    // tipo de canal (ON/OFF) -> sumamos las botellas estimadas de esa dinámica.
+    const dinaMap = new Map<string, { fact: number; sin: number }>()
+    for (const d of dinamicas) {
+      dinaMap.set(`${d.figurita_id}|${d.tipo}`, {
+        fact: d.botellas_facturadas ?? 0,
+        sin: d.botellas_sin_cargo ?? 0,
+      })
+    }
+    let volFacturadas = 0
+    let volSinCargo = 0
+    for (const c of clientesCalc) {
+      if (!c.canalTipo) continue
+      for (const figId of c.tieneSet) {
+        const dv = dinaMap.get(`${figId}|${c.canalTipo}`)
+        if (dv) {
+          volFacturadas += dv.fact
+          volSinCargo += dv.sin
+        }
+      }
+    }
+    const hayEstimacion = dinamicas.some(
+      (d) => d.botellas_facturadas != null || d.botellas_sin_cargo != null,
+    )
+
     return {
       total,
       figuritas,
@@ -216,6 +265,9 @@ export function Tablero(_props: Props) {
       reservados,
       barData,
       pieData,
+      volFacturadas,
+      volSinCargo,
+      hayEstimacion,
     }
   }, [carga])
 
@@ -273,6 +325,36 @@ export function Tablero(_props: Props) {
           valor={`${datos.confirmados} ✓ / ${datos.reservados} ⏳`}
           sub="entregados / pendientes"
         />
+      </section>
+
+      {/* 1b) VOLUMEN ESTIMADO */}
+      <section>
+        <h3 className="mb-3 font-display text-lg text-crema">
+          Volumen estimado de tu marca
+        </h3>
+        {datos.hayEstimacion ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Tarjeta
+                label="Botellas facturadas (est.)"
+                valor={datos.volFacturadas.toLocaleString('es-AR')}
+                acento
+              />
+              <Tarjeta
+                label="Botellas sin cargo (est.)"
+                valor={datos.volSinCargo.toLocaleString('es-AR')}
+              />
+            </div>
+            <p className="mt-2 text-xs text-crema/45">
+              Estimación: por cada figurita que un cliente tiene se asume cumplida la
+              dinámica de su canal (ON/OFF). Sin cargo = solo botellas de tu marca.
+            </p>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dorado/20 bg-white/5 px-5 py-6 text-center text-sm text-crema/55">
+            Todavía no hay estimaciones de volumen cargadas para tus dinámicas.
+          </div>
+        )}
       </section>
 
       {/* 2) GRÁFICOS */}
