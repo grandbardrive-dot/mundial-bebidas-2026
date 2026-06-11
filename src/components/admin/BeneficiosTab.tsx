@@ -331,6 +331,8 @@ export function BeneficiosTab() {
   const [benPorDin, setBenPorDin] = useState<Record<string, Ben[]>>({})
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filtroProv, setFiltroProv] = useState('') // '' = todos
+  const [filtroTipo, setFiltroTipo] = useState<'' | 'ON' | 'OFF'>('')
 
   useEffect(() => {
     let activo = true
@@ -388,16 +390,44 @@ export function BeneficiosTab() {
     return arr
   }, [dinamicas])
 
-  // Agrupar por proveedor para los encabezados
+  // Lista de proveedores (para el select), ordenada por pagina_num
+  const proveedoresLista = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const d of ordenadas) {
+      const p = uno(uno(d.figuritas)?.proveedores ?? null)
+      if (p?.nombre) m.set(p.nombre, p.pagina_num ?? 999)
+    }
+    return [...m.entries()].sort((a, b) => a[1] - b[1]).map((e) => e[0])
+  }, [ordenadas])
+
+  // Filtrado combinado (proveedor + tipo de canal)
+  const filtradas = useMemo(
+    () =>
+      ordenadas.filter((d) => {
+        const provNombre =
+          uno(uno(d.figuritas)?.proveedores ?? null)?.nombre ?? ''
+        if (filtroProv && provNombre !== filtroProv) return false
+        if (filtroTipo && d.tipo !== filtroTipo) return false
+        return true
+      }),
+    [ordenadas, filtroProv, filtroTipo],
+  )
+
+  const mostradas = filtradas.length
+  const aRevisar = filtradas.filter(
+    (d) => (benPorDin[d.id]?.length ?? 0) === 0,
+  ).length
+
+  // Agrupar por proveedor para los encabezados (sobre lo filtrado)
   const grupos = useMemo(() => {
     const map = new Map<string, DinRow[]>()
-    for (const d of ordenadas) {
+    for (const d of filtradas) {
       const prov = uno(uno(d.figuritas)?.proveedores ?? null)?.nombre ?? 'Sin proveedor'
       if (!map.has(prov)) map.set(prov, [])
       map.get(prov)!.push(d)
     }
     return [...map.entries()]
-  }, [ordenadas])
+  }, [filtradas])
 
   return (
     <div>
@@ -418,6 +448,55 @@ export function BeneficiosTab() {
           marca (no diluyentes ni regalos de otras marcas).
         </p>
       </div>
+
+      {/* Filtros + contador */}
+      {!cargando && !error && (
+        <div className="mb-4 flex flex-wrap items-end gap-3">
+          <label className="text-xs text-crema/60">
+            <span className="mb-1 block">Proveedor</span>
+            <select
+              className={`${input} w-48`}
+              value={filtroProv}
+              onChange={(e) => setFiltroProv(e.target.value)}
+            >
+              <option value="" className="bg-morado">
+                Todos
+              </option>
+              {proveedoresLista.map((p) => (
+                <option key={p} value={p} className="bg-morado">
+                  {p}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs text-crema/60">
+            <span className="mb-1 block">Canal / tipo</span>
+            <select
+              className={`${input} w-28`}
+              value={filtroTipo}
+              onChange={(e) => setFiltroTipo(e.target.value as '' | 'ON' | 'OFF')}
+            >
+              <option value="" className="bg-morado">
+                Todos
+              </option>
+              <option value="ON" className="bg-morado">
+                ON
+              </option>
+              <option value="OFF" className="bg-morado">
+                OFF
+              </option>
+            </select>
+          </label>
+
+          <div className="ml-auto pb-1 text-sm text-crema/70">
+            <span className="font-semibold text-crema">{mostradas}</span> dinámicas
+            {(filtroProv || filtroTipo) && <span className="text-crema/45"> (filtradas)</span>}
+            {' · '}
+            <span className="font-semibold text-naranja">{aRevisar}</span> a revisar
+            <span className="text-crema/45"> (sin beneficios)</span>
+          </div>
+        </div>
+      )}
 
       {cargando && (
         <div className="flex items-center gap-2 py-8 text-crema/60">
@@ -444,6 +523,11 @@ export function BeneficiosTab() {
           ))}
           {dinamicas.length === 0 && (
             <p className="text-sm text-crema/50">No hay dinámicas cargadas.</p>
+          )}
+          {dinamicas.length > 0 && filtradas.length === 0 && (
+            <p className="rounded-xl border border-dorado/20 bg-vino/20 px-4 py-8 text-center text-sm text-crema/55">
+              No hay dinámicas con esos filtros.
+            </p>
           )}
         </div>
       )}
