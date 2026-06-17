@@ -6,12 +6,14 @@ import { PremiosGeneralesTab } from '../components/admin/PremiosGeneralesTab'
 import { VendedoresTab } from '../components/admin/VendedoresTab'
 import { ReclamosTab } from '../components/admin/ReclamosTab'
 import { BeneficiosTab } from '../components/admin/BeneficiosTab'
+import { ClientesTab } from '../components/admin/ClientesTab'
 import { KpisDashboard } from '../components/admin/KpisDashboard'
 
 const FLAG = 'gb_admin_ok'
 
 type TabId =
   | 'dashboard'
+  | 'clientes'
   | 'proveedor'
   | 'generales'
   | 'vendedores'
@@ -19,6 +21,7 @@ type TabId =
   | 'estimaciones'
 const TABS: { id: TabId; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'clientes', label: 'Clientes' },
   { id: 'proveedor', label: 'Premios por proveedor' },
   { id: 'generales', label: 'Premios generales' },
   { id: 'vendedores', label: 'Vendedores' },
@@ -128,6 +131,7 @@ export function Admin() {
 
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
         {tab === 'dashboard' && <KpisDashboard />}
+        {tab === 'clientes' && <ClientesTab />}
         {tab === 'proveedor' && <PremiosProveedorTab />}
         {tab === 'generales' && <PremiosGeneralesTab />}
         {tab === 'vendedores' && <VendedoresTab />}
