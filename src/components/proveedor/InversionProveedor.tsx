@@ -7,7 +7,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
-import { AlertTriangle, Info, Loader2, PiggyBank } from 'lucide-react'
+import { AlertTriangle, Gift, Info, Loader2, PiggyBank } from 'lucide-react'
 import { supabaseAuth } from '../../lib/supabaseAuth'
 import type { CategoriaGasto, GastoProyecto } from '../../types'
 
@@ -29,27 +29,26 @@ const CAT_COLOR: Record<CategoriaGasto, string> = {
 interface PremioRow {
   id: string
   nombre_premio: string
-}
-interface ReclamoRow {
-  premio_id: string | null
-  estado: string
+  imagen_url: string | null
+  stock_inicial: number | null
+  stock_disponible: number | null
 }
 
 export function InversionProveedor() {
   const [gastos, setGastos] = useState<GastoProyecto[] | null>(null)
   const [premios, setPremios] = useState<PremioRow[]>([])
-  const [reclamos, setReclamos] = useState<ReclamoRow[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let activo = true
     ;(async () => {
-      const [gRes, pRes, rRes] = await Promise.all([
+      const [gRes, pRes] = await Promise.all([
         supabaseAuth
           .from('gastos_proyecto')
           .select('id, concepto, monto, categoria, created_at'),
-        supabaseAuth.from('premios_proveedor_semana').select('id, nombre_premio'),
-        supabaseAuth.from('reclamos_premio').select('premio_id, estado'),
+        supabaseAuth
+          .from('premios_proveedor_semana')
+          .select('id, nombre_premio, imagen_url, stock_inicial, stock_disponible'),
       ])
       if (!activo) return
       if (gRes.error) {
@@ -58,7 +57,6 @@ export function InversionProveedor() {
       }
       setGastos((gRes.data ?? []) as GastoProyecto[])
       if (!pRes.error) setPremios((pRes.data ?? []) as PremioRow[])
-      if (!rRes.error) setReclamos((rRes.data ?? []) as ReclamoRow[])
     })()
     return () => {
       activo = false
@@ -82,23 +80,29 @@ export function InversionProveedor() {
       color: CAT_COLOR[cat],
     }))
 
-    // premios de la marca ya entregados (reclamos confirmados por premio)
-    const nombrePremio = new Map(premios.map((p) => [p.id, p.nombre_premio]))
-    const entregadosPorPremio = new Map<string, number>()
-    for (const r of reclamos) {
-      if (r.estado !== 'confirmado' || !r.premio_id) continue
-      entregadosPorPremio.set(
-        r.premio_id,
-        (entregadosPorPremio.get(r.premio_id) ?? 0) + 1,
-      )
-    }
-    const premiosMarca = [...entregadosPorPremio.entries()].map(([pid, cant]) => ({
-      nombre: nombrePremio.get(pid) ?? 'Premio',
-      cantidad: cant,
+    // Premios de la marca: cargados (stock_inicial) y entregados (inicial - disponible)
+    const cargados = premios.map((p) => ({
+      nombre: p.nombre_premio,
+      foto: p.imagen_url,
+      cantidad: p.stock_inicial ?? 0,
     }))
+    const entregados = premios
+      .map((p) => ({
+        nombre: p.nombre_premio,
+        cantidad: (p.stock_inicial ?? 0) - (p.stock_disponible ?? 0),
+      }))
+      .filter((p) => p.cantidad > 0)
 
-    return { total, tuParte, porCat: [...porCat.entries()], pieData, premiosMarca }
-  }, [gastos, premios, reclamos])
+    return {
+      total,
+      tuParte,
+      porCat: [...porCat.entries()],
+      pieData,
+      cargados,
+      entregados,
+      tienePremios: premios.length > 0,
+    }
+  }, [gastos, premios])
 
   return (
     <section className="rounded-2xl border border-dorado/25 bg-white/5 p-5">
@@ -219,33 +223,71 @@ export function InversionProveedor() {
 
           {/* Premios de la marca (aparte, NO se dividen) */}
           <div className="mt-5 rounded-2xl border border-azul/40 bg-white/5 p-4">
-            <h3 className="font-display text-lg text-crema">
-              Premios de tu marca ya aportados
-            </h3>
-            <p className="mb-3 mt-1 flex items-start gap-1.5 text-xs text-crema/60">
+            <h3 className="font-display text-lg text-crema">Premios de tu marca</h3>
+            <p className="mb-4 mt-1 flex items-start gap-1.5 text-xs text-crema/60">
               <Info size={14} className="mt-0.5 shrink-0 text-dorado" />
               Estos premios los aportó tu marca y <span className="font-semibold">NO</span>{' '}
-              se dividen entre los 7. (Si no está cargado el costo, se muestra la cantidad
-              entregada.)
+              se dividen entre los 7.
             </p>
-            {calc.premiosMarca.length === 0 ? (
+
+            {!calc.tienePremios ? (
               <p className="text-sm text-crema/50">
-                Todavía no hay premios de tu marca confirmados.
+                Tu marca todavía no tiene premios cargados.
               </p>
             ) : (
-              <ul className="space-y-1">
-                {calc.premiosMarca.map((p, i) => (
-                  <li
-                    key={i}
-                    className="flex justify-between gap-3 text-sm text-crema/80"
-                  >
-                    <span className="truncate">{p.nombre}</span>
-                    <span className="shrink-0 text-dorado">
-                      {p.cantidad} entregado{p.cantidad === 1 ? '' : 's'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Cargados */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dorado">
+                    Premios cargados
+                  </p>
+                  <ul className="space-y-2">
+                    {calc.cargados.map((p, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dorado/20 bg-morado">
+                          {p.foto ? (
+                            <img
+                              src={p.foto}
+                              alt={p.nombre}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Gift className="text-crema/30" size={16} />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-crema/80">
+                          {p.nombre}
+                        </span>
+                        <span className="shrink-0 text-crema/60">{p.cantidad}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Entregados */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-dorado">
+                    Premios entregados
+                  </p>
+                  {calc.entregados.length === 0 ? (
+                    <p className="text-sm text-crema/45">Todavía no se entregó ninguno.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {calc.entregados.map((p, i) => (
+                        <li
+                          key={i}
+                          className="flex justify-between gap-3 text-sm text-crema/80"
+                        >
+                          <span className="min-w-0 truncate">{p.nombre}</span>
+                          <span className="shrink-0 text-dorado">
+                            {p.cantidad} entregado{p.cantidad === 1 ? '' : 's'}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </>
