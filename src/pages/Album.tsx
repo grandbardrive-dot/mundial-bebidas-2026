@@ -8,6 +8,7 @@ import { FiguritaCard } from '../components/FiguritaCard'
 import { ReclamoModal } from '../components/ReclamoModal'
 import { RankingClientes } from '../components/RankingClientes'
 import { Ganadores } from '../components/Ganadores'
+import { GanadoresTV } from '../components/GanadoresTV'
 
 interface Props {
   clienteId: string
@@ -367,6 +368,11 @@ export function Album({ clienteId, onReset }: Props) {
             <Barra value={completadas} max={total} alta />
           </div>
         </header>
+
+        {/* Ganadores destacados de la Smart TV (semanas 1 y 2) */}
+        <div className="mb-8">
+          <GanadoresTV />
+        </div>
 
         {/* Secciones por proveedor */}
         <div className="space-y-8">

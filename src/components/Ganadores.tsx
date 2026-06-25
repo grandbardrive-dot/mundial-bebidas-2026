@@ -1,68 +1,60 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Award, Loader2, PartyPopper, Star } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-
-interface RankRow {
-  id: string
-  nombre_local: string
-  completado_at: string | null
-}
+import type { Ganador } from '../types'
 
 interface PremioRow {
   nombre: string
   tipo: 'semanal_1' | 'semanal_2' | null
 }
 
-function fmtFecha(iso: string) {
+function fmtFecha(f: string) {
   try {
-    return new Date(iso).toLocaleString('es-AR', {
+    return new Date(f + 'T00:00:00').toLocaleDateString('es-AR', {
       day: '2-digit',
       month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
     })
   } catch {
-    return iso
+    return f
   }
 }
 
 export function Ganadores() {
-  const [filas, setFilas] = useState<RankRow[] | null>(null)
+  const [filas, setFilas] = useState<Ganador[] | null>(null)
   const [premios, setPremios] = useState<PremioRow[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let activo = true
     ;(async () => {
-      const [rk, pr] = await Promise.all([
-        supabase.from('vw_ranking').select('id, nombre_local, completado_at'),
+      const [gRes, pRes] = await Promise.all([
+        supabase
+          .from('ganadores')
+          .select('id, nombre_local, premio, orden, fecha, origen, created_at')
+          .order('premio', { ascending: true })
+          .order('orden', { ascending: true, nullsFirst: false }),
         supabase.from('premios_generales').select('nombre, tipo'),
       ])
       if (!activo) return
-      if (rk.error) {
-        setError(rk.error.message)
+      if (gRes.error) {
+        setError(gRes.error.message)
         return
       }
-      setFilas((rk.data ?? []) as RankRow[])
-      if (!pr.error) setPremios((pr.data ?? []) as PremioRow[])
+      setFilas((gRes.data ?? []) as Ganador[])
+      if (!pRes.error) setPremios((pRes.data ?? []) as PremioRow[])
     })()
     return () => {
       activo = false
     }
   }, [])
 
-  const ganadores = useMemo(() => {
-    if (!filas) return []
-    return filas
-      .filter((f) => f.completado_at)
-      .sort((a, b) => Date.parse(a.completado_at!) - Date.parse(b.completado_at!))
-  }, [filas])
-
   const premioMayor =
     premios.find((p) => p.tipo === 'semanal_1')?.nombre ?? 'Smart TV'
   const premiosSegundo = premios
     .filter((p) => p.tipo === 'semanal_2')
     .map((p) => p.nombre)
+
+  const ganadores = useMemo(() => filas ?? [], [filas])
 
   return (
     <section className="rounded-2xl border border-dorado/25 bg-morado/50 p-5 shadow-lg shadow-black/20">
@@ -72,9 +64,7 @@ export function Ganadores() {
       </div>
       <p className="mb-4 text-xs text-crema/55">
         Premio mayor (1er puesto): <span className="text-dorado">{premioMayor}</span>.
-        {premiosSegundo.length > 0 && (
-          <> 2° puesto: {premiosSegundo.join(' · ')}.</>
-        )}
+        {premiosSegundo.length > 0 && <> 2° puesto: {premiosSegundo.join(' · ')}.</>}
       </p>
 
       {error && (
@@ -101,31 +91,33 @@ export function Ganadores() {
 
       {filas && !error && ganadores.length > 0 && (
         <ol className="space-y-2">
-          {ganadores.map((g, i) => {
-            const esGanador = i === 0
+          {ganadores.map((g) => {
+            const esTV = /tv/i.test(g.premio)
             return (
               <li
                 key={g.id}
                 className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
-                  esGanador
+                  esTV
                     ? 'border-2 border-dorado bg-dorado/15'
                     : 'border border-dorado/15 bg-vino/20'
                 }`}
               >
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                    esGanador ? 'bg-dorado text-morado' : 'bg-morado/70 text-crema/70'
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-bold ${
+                    esTV ? 'bg-dorado text-morado' : 'bg-morado/70 text-crema/70'
                   }`}
                 >
-                  {esGanador ? <Star size={18} /> : i + 1}
+                  {esTV ? <Star size={18} /> : (g.orden ?? '•')}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-crema">{g.nombre_local}</p>
                   <p className="text-xs text-crema/55">
-                    Completó el {fmtFecha(g.completado_at!)}
+                    {g.premio}
+                    {g.orden != null && <> · #{g.orden}</>}
+                    {g.fecha && <> · {fmtFecha(g.fecha)}</>}
                   </p>
                 </div>
-                {esGanador && (
+                {esTV && (
                   <span className="shrink-0 rounded-full bg-naranja px-3 py-1 text-xs font-bold uppercase tracking-wide text-crema">
                     ¡Ganador!
                   </span>

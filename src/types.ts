@@ -80,6 +80,16 @@ export interface PremioProveedor {
   condicion: string | null
 }
 
+export interface Ganador {
+  id: string
+  nombre_local: string
+  premio: string
+  orden: number | null
+  fecha: string | null
+  origen: 'manual' | 'auto'
+  created_at: string
+}
+
 export type CategoriaGasto = 'impresion' | 'premio_general' | 'otro'
 
 export interface GastoProyecto {
