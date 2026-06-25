@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Loader2, LogOut, Store } from 'lucide-react'
 import { supabaseAuth } from '../lib/supabaseAuth'
 import { Tablero } from '../components/proveedor/Tablero'
+import { InversionProveedor } from '../components/proveedor/InversionProveedor'
 import { FondoProveedor } from '../components/proveedor/FondoProveedor'
 
 type Estado =
@@ -115,6 +116,9 @@ export function ProveedorPanel() {
               Panel de {estado.nombre}
             </h1>
             <Tablero proveedorId={estado.proveedorId} nombre={estado.nombre} />
+            <div className="mt-8">
+              <InversionProveedor />
+            </div>
           </div>
         )}
       </div>

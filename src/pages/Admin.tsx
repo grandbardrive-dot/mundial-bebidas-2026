@@ -7,6 +7,7 @@ import { VendedoresTab } from '../components/admin/VendedoresTab'
 import { ReclamosTab } from '../components/admin/ReclamosTab'
 import { BeneficiosTab } from '../components/admin/BeneficiosTab'
 import { ClientesTab } from '../components/admin/ClientesTab'
+import { GastosTab } from '../components/admin/GastosTab'
 import { KpisDashboard } from '../components/admin/KpisDashboard'
 
 const FLAG = 'gb_admin_ok'
@@ -19,6 +20,7 @@ type TabId =
   | 'vendedores'
   | 'reclamos'
   | 'estimaciones'
+  | 'gastos'
 const TABS: { id: TabId; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'clientes', label: 'Clientes' },
@@ -27,6 +29,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'vendedores', label: 'Vendedores' },
   { id: 'reclamos', label: 'Reclamos' },
   { id: 'estimaciones', label: 'Estimaciones de volumen' },
+  { id: 'gastos', label: 'Inversión / Gastos' },
 ]
 
 function Gate({ onOk }: { onOk: () => void }) {
@@ -137,6 +140,7 @@ export function Admin() {
         {tab === 'vendedores' && <VendedoresTab />}
         {tab === 'reclamos' && <ReclamosTab />}
         {tab === 'estimaciones' && <BeneficiosTab />}
+        {tab === 'gastos' && <GastosTab />}
       </div>
     </main>
   )

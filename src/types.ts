@@ -80,6 +80,16 @@ export interface PremioProveedor {
   condicion: string | null
 }
 
+export type CategoriaGasto = 'impresion' | 'premio_general' | 'otro'
+
+export interface GastoProyecto {
+  id: string
+  concepto: string
+  monto: number
+  categoria: CategoriaGasto
+  created_at: string
+}
+
 export type EstadoReclamo = 'reservado' | 'confirmado' | 'rechazado'
 
 export interface Reclamo {
