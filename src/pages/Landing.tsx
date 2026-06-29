@@ -9,12 +9,12 @@ export function Landing() {
     <div className="min-h-screen bg-morado">
       <Hero />
       <ComoFunciona />
-      <PremiosGenerales />
-      <div className="bg-morado px-6 pb-4">
+      <div className="bg-morado px-6 pt-12">
         <div className="mx-auto max-w-3xl">
           <GanadoresTV />
         </div>
       </div>
+      <PremiosGenerales />
       <CtaFinal />
       <footer className="bg-morado px-6 py-8 text-center text-sm text-crema/50">
         © 2026 GrandBar Distribuciones — Mundial de Bebidas. Promo válida del 1

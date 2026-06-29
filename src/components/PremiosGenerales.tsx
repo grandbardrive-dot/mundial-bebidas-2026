@@ -24,21 +24,33 @@ function CardSkeleton() {
 
 export function PremiosGenerales() {
   const [estado, setEstado] = useState<Estado>({ status: 'cargando' })
+  // Semanas cuyo TV ya fue entregado (hay ganador de TV con ese orden)
+  const [tvEntregadas, setTvEntregadas] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     let activo = true
 
     async function cargar() {
-      const { data, error } = await supabase
-        .from('premios_generales')
-        .select('id, nombre, descripcion, tipo, semana, imagen_url, cantidad')
-        .order('semana', { ascending: true, nullsFirst: false })
+      const [premRes, ganRes] = await Promise.all([
+        supabase
+          .from('premios_generales')
+          .select('id, nombre, descripcion, tipo, semana, imagen_url, cantidad')
+          .order('semana', { ascending: true, nullsFirst: false }),
+        supabase.from('ganadores').select('orden, premio').ilike('premio', 'tv'),
+      ])
 
       if (!activo) return
-      if (error) {
-        setEstado({ status: 'error', mensaje: error.message })
+      if (premRes.error) {
+        setEstado({ status: 'error', mensaje: premRes.error.message })
       } else {
-        setEstado({ status: 'ok', premios: (data ?? []) as PremioGeneral[] })
+        setEstado({ status: 'ok', premios: (premRes.data ?? []) as PremioGeneral[] })
+      }
+      if (!ganRes.error) {
+        const set = new Set<number>()
+        for (const g of (ganRes.data ?? []) as { orden: number | null }[]) {
+          if (g.orden != null) set.add(g.orden)
+        }
+        setTvEntregadas(set)
       }
     }
 
@@ -94,7 +106,13 @@ export function PremiosGenerales() {
               Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
 
             {estado.status === 'ok' &&
-              mayores.map((p) => <PremioMayorCard key={p.id} premio={p} />)}
+              mayores.map((p) => (
+                <PremioMayorCard
+                  key={p.id}
+                  premio={p}
+                  entregado={p.semana != null && tvEntregadas.has(p.semana)}
+                />
+              ))}
 
             {estado.status === 'ok' && mayores.length === 0 && (
               <p className="col-span-full text-center text-crema/50">

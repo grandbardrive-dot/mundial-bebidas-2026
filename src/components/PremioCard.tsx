@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Gift, Trophy } from 'lucide-react'
+import { Check, Gift, Trophy } from 'lucide-react'
 import type { PremioGeneral } from '../types'
 
 /** Imagen del premio con fallback elegante si el archivo no existe. */
@@ -28,18 +28,37 @@ function PremioImagen({ src, alt }: { src: string | null; alt: string }) {
   )
 }
 
-/** Card del PREMIO MAYOR (semanal_1): borde dorado + badge de trofeo + acento naranja. */
-export function PremioMayorCard({ premio }: { premio: PremioGeneral }) {
+/** Card del PREMIO MAYOR (semanal_1): borde dorado + badge de trofeo + acento naranja.
+ *  Si `entregado`, se muestra atenuada/gris con sello "Entregado". */
+export function PremioMayorCard({
+  premio,
+  entregado,
+}: {
+  premio: PremioGeneral
+  entregado?: boolean
+}) {
   return (
-    <article className="group relative overflow-hidden rounded-2xl border-2 border-dorado bg-vino shadow-lg shadow-black/30 transition hover:-translate-y-1.5 hover:shadow-xl">
+    <article
+      className={`group relative overflow-hidden rounded-2xl border-2 bg-vino shadow-lg shadow-black/30 transition ${
+        entregado
+          ? 'border-crema/20 opacity-60 grayscale'
+          : 'border-dorado hover:-translate-y-1.5 hover:shadow-xl'
+      }`}
+    >
       {/* Badge de semana (acento naranja) */}
       <div className="absolute left-4 top-4 z-10 rounded-full bg-naranja px-3 py-1 text-xs font-bold uppercase tracking-wide text-crema shadow">
         Semana {premio.semana}
       </div>
-      {/* Badge de trofeo dorado (premio top) */}
-      <div className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-dorado text-morado shadow">
-        <Trophy size={18} strokeWidth={2.4} />
-      </div>
+      {/* Badge: entregado (gris) o trofeo dorado */}
+      {entregado ? (
+        <div className="absolute right-4 top-4 z-10 inline-flex items-center gap-1 rounded-full bg-crema/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-crema shadow">
+          <Check size={12} strokeWidth={3} /> Entregado
+        </div>
+      ) : (
+        <div className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-dorado text-morado shadow">
+          <Trophy size={18} strokeWidth={2.4} />
+        </div>
+      )}
 
       <div className="aspect-[4/3] w-full overflow-hidden">
         <PremioImagen src={premio.imagen_url} alt={premio.nombre} />
@@ -50,7 +69,9 @@ export function PremioMayorCard({ premio }: { premio: PremioGeneral }) {
           {premio.nombre}
         </h4>
         <p className="mt-2 text-sm leading-relaxed text-crema/65">
-          Para el primer cliente que complete el álbum completo esa semana.
+          {entregado
+            ? 'Este televisor ya fue entregado.'
+            : 'Para el primer cliente que complete el álbum completo esa semana.'}
         </p>
       </div>
     </article>
