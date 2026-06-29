@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Check, ImageOff, Loader2, X } from 'lucide-react'
+import { AlertTriangle, Check, Download, ImageOff, Loader2, X } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { EstadoReclamo } from '../../types'
 
@@ -162,6 +162,34 @@ export function ReclamosTab() {
 
   const visibles = lista.filter((r) => filtro === 'todos' || r.estado === filtro)
 
+  function descargarCSV() {
+    const headers = ['Fecha', 'Proveedor', 'Premio', 'Cliente (local)', 'Estado']
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    const filas = visibles.map((r) => {
+      const cliente = uno(r.clientes)?.nombre_local ?? ''
+      const premio = uno(r.premios_proveedor_semana)
+      const proveedor = uno(premio?.proveedores ?? null)?.nombre ?? ''
+      return [
+        new Date(r.created_at).toLocaleString('es-AR'),
+        proveedor,
+        premio?.nombre_premio ?? '',
+        cliente,
+        r.estado,
+      ]
+    })
+    const csv = [headers, ...filas]
+      .map((row) => row.map(cell).join(','))
+      .join('\r\n')
+    // BOM para que Excel respete acentos
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `premios-entregados-${filtro}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -169,7 +197,7 @@ export function ReclamosTab() {
           Reclamos{' '}
           <span className="text-sm font-normal text-crema/50">({lista.length})</span>
         </h2>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {FILTROS.map((f) => (
             <button
               key={f.id}
@@ -184,6 +212,14 @@ export function ReclamosTab() {
               {f.label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={descargarCSV}
+            disabled={visibles.length === 0}
+            className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-dorado px-3 py-1.5 text-xs font-semibold text-morado transition hover:bg-[#d9b97a] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Download size={14} /> Descargar CSV
+          </button>
         </div>
       </div>
 
